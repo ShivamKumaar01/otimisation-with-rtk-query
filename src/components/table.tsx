@@ -1,70 +1,93 @@
 
-import { useGetAllProductsQuery, useGetProductsByPageQuery } from '../redux/product-api';
-// import * as React from 'react';
-import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import Paper from '@mui/material/Paper';
-import { Box } from '@mui/material';
-import { useState } from 'react';
-import TextField from '@mui/material/TextField';
+import {useGetProductsByPageQuery,useGetProductsBySearchQuery,} from "../redux/product-api";
+import { DataGrid, GridColDef } from "@mui/x-data-grid";
+import Paper from "@mui/material/Paper";
+import { Box, TextField } from "@mui/material";
+import { useEffect, useState } from "react";
 
 const columns: GridColDef[] = [
-  { field: 'id', headerName: 'ID', width: 70 },
-  { field: 'title', headerName: 'title', width: 130 },
-  { field: 'description', headerName: 'description', width: 130 },
-  {
-    field: 'category',
-    headerName: 'category',
-    type: 'string',
-    width: 90,
-  },
-
+  { field: "id", headerName: "ID", width: 70 },
+  { field: "title", headerName: "Title", width: 130 },
+  { field: "description", headerName: "Description", width: 180 },
+  { field: "category", headerName: "Category", width: 100 },
 ];
 
-
-
-const paginationModel = { page: 0, pageSize: 5 };
-console.log(paginationModel,"hi")
 const Table = () => {
+  const [inputText, setInputText] = useState("");
+  const [debouncedText, setDebouncedText] = useState("");
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
 
-  const[inputText,setInputText]=useState("");
-  const[search,setSearch]=useState("")
-  const[limit,setlimit]=useState(10);
-  const[skip,setSkip]=useState();
+  
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedText(inputText);
+      setPage(0); 
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [inputText]);
 
-  const pageValue={limit,skip};
-  const{data}=useGetAllProductsQuery()
-  const{value}=useGetProductsByPageQuery(pageValue)
-  console.log(value,"this is data from pagination")
-  console.log(data,"This is data comming from api");
-  function changeHandler(e){
-    console.log(e.target.value)
-    setInputText(e.target.value);
-    console.log("hi")
-  }
+  const skip = page * pageSize;
+  const limit = pageSize;
+
  
+  const { data: pagedData, isLoading: isPagedLoading } = useGetProductsByPageQuery(
+    { skip, limit },
+    { skip: debouncedText.length > 0 }
+  );
+
+ 
+  const { data: searchData, isLoading: isSearchLoading } = useGetProductsBySearchQuery(
+    debouncedText,
+    { skip: debouncedText.length === 0 }
+  );
+
+ 
+  const searchProducts = searchData?.products || [];
+  const slicedSearchData = searchProducts.slice(skip, skip + limit);
+
+ 
+  const rows =
+    debouncedText.length > 0
+      ? slicedSearchData
+      : pagedData?.products || [];
+
+  const totalRowCount =
+    debouncedText.length > 0
+      ? searchProducts.length
+      : pagedData?.total || 0;
+
   return (
-   <Box>
-     <Box sx={{ width: 500, maxWidth: "100%", marginTop: "4%" }}>
+    <Box>
+      <Box sx={{ width: 500, maxWidth: "100%", marginTop: "4%" }}>
         <TextField
           fullWidth
-          label="fullWidth"
-          id="fullWidth"
+          label="Search Products"
           value={inputText}
-          onChange={(e)=>changeHandler(e)}
+          onChange={(e) => setInputText(e.target.value)}
         />
       </Box>
-   <Paper sx={{ height: 400, width: '100%' }}>
-      <DataGrid
-        rows={data?.products}
-        columns={columns}
-        initialState={{ pagination: { paginationModel } }}
-        pageSizeOptions={[5, 10]}
-        checkboxSelection
-        sx={{ border: 0 }}
-      />
-    </Paper>
-   </Box>
-  )
-}
 
-export default Table
+      <Paper sx={{ height: 500, width: "100%", marginTop: 2 }}>
+        <DataGrid
+          rows={rows}
+          columns={columns}
+          loading={isPagedLoading || isSearchLoading}
+          rowCount={totalRowCount}
+          pagination
+          paginationMode="server"
+          pageSizeOptions={[5, 10]}
+          paginationModel={{ page, pageSize }}
+          onPaginationModelChange={({ page, pageSize }) => {
+            setPage(page);
+            setPageSize(pageSize);
+          }}
+         
+        />
+      </Paper>
+    </Box>
+  );
+};
+
+export default Table;
+

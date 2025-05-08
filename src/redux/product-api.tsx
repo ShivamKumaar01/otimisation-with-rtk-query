@@ -8,14 +8,14 @@ export const productsApi=createApi({
             query:()=>"products",
         }),
         getProductsByPage:builder.query({
-            query:(pageValue)=>`https://dummyjson.com/products?limit=${pageValue.limit}&skip=${pageValue.skip}`
+            query:(pageValue)=>`products?limit=${pageValue.limit}&skip=${pageValue.skip}`
            
         }),
         getProductsBySearch:builder.query({
-            query:(search:string)=>`https://dummyjson.com/products/search?q=${search}`
+            query:(search:string)=>`products/search?q=${search}`
         })
 
     }),
   
 })
-export const {useGetAllProductsQuery,useGetProductsByPageQuery}=productsApi
+export const {useGetAllProductsQuery,useGetProductsByPageQuery,useGetProductsBySearchQuery}=productsApi
